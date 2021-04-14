@@ -6,16 +6,16 @@ outBufferPtr: .quad 0
 
     .text
     .global inImage /* Done */
-	.global getInt
+	.global getInt /* Done */
 	.global getText
 	.global getChar
 	.global getInPos
 	.global setInPos
 	.global outImage
 	.global putInt
-	.global putText /*Done */
+	.global putText /* Done */
 	.global putChar
-	.global getOutPos
+	.global getOutPos /* Done */
 	.global setOutPos
 
 inImage:
@@ -25,19 +25,46 @@ inImage:
     call fgets
     leaq inBufferPtr, %rax
     movq $0, (%rax)
-    leaq inBuffer, %r10
-newCharLoop:
-    addq $4, %r10
-    cmpq $0, (%r10)
-    je returnInImage
-    incq (%rax) 
-    jmp newCharLoop
-returnInImage:
-    incq (%rax)
     ret
 
 getInt:
-ret
+    leaq inBuffer, %rax
+    movq $inBufferPtr, %r10
+    leaq (%rax, %r10, 4), %rdi
+    movq $0, %rax
+    movq $11, %r11
+lBlankCheck:
+    cmpb $' ', (%rdi)
+    jne lSignPlus
+    incq %rdi
+    jmp lBlankCheck
+lSignPlus:
+    cmpb $'+', (%rdi)
+    jne lSignMinus
+    incq %rdi
+    jmp lNumber
+lSignMinus:
+    cmpb $'-', (%rdi)
+    jne lNumber
+    movq $1, %r11
+    incq %rdi
+lNumber:
+    cmpb $'0', (%rdi)
+    jl  lNAN
+    cmpb $'9', (%rdi)
+    jg lNAN
+    movzbq (%rdi), %r10
+    subq $'0', %r10
+    imulq $10, %rax
+    addq %r10, %rax
+    incq %rdi
+    jmp lNumber
+lNAN:
+    cmpq $1, %r11
+    jne lEnd
+    negq %rax
+lEnd:
+    ret
 
 getText:
 ret
@@ -52,7 +79,11 @@ setInPos:
 ret
 
 outImage:
-ret
+    movq $0, %rsi
+    movq outBuffer, %rdi
+    call printf
+    movq $0, outBufferPtr
+    ret
 
 putInt:
 ret
@@ -79,7 +110,20 @@ putChar:
 ret
 
 getOutPos:
-ret
+    movq $outBufferPtr, %rax
+    ret
 
 setOutPos:
-ret
+
+    cmpq  $0, %rdi
+    jle Outposle
+    cmpq $63, %rdi
+    jge Outposge
+    movq %rdi, $outBufferPtr
+    ret
+Outposle:
+    movq $0, $outBufferPtr
+    ret
+Outposge:
+    movq $63, $outBufferPtr
+    ret

@@ -10,6 +10,7 @@ temp:	.quad	0
 	.global	main
 main:
 	pushq	$0
+	ret
 	movq	$headMsg,%rdi
 	call	putText
 	call	outImage

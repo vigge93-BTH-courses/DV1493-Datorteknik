@@ -1,11 +1,11 @@
     .data
-inBuffer:   .space 64
+inBuffer: .space 64
 outBuffer: .space 64
 inBufferPtr: .quad 0
 outBufferPtr: .quad 0
 
     .text
-    .global inImage
+    .global inImage /* Done */
 	.global getInt
 	.global getText
 	.global getChar
@@ -13,26 +13,27 @@ outBufferPtr: .quad 0
 	.global setInPos
 	.global outImage
 	.global putInt
-	.global putText
+	.global putText /*Done */
 	.global putChar
 	.global getOutPos
 	.global setOutPos
 
 inImage:
-    movq $inBuffer, %rdi
+    leaq inBuffer, %rdi
     movq $64, %rsi
     movq stdin, %rdx
     call fgets
     leaq inBufferPtr, %rax
-    movq $0, %rax
+    movq $0, (%rax)
+    leaq inBuffer, %r10
 newCharLoop:
-    movq $inBuffer, %rbx
-    cmpq $0, (%rbx, %rax)
+    addq $4, %r10
+    cmpq $0, (%r10)
     je returnInImage
-    incq %rax 
+    incq (%rax) 
     jmp newCharLoop
 returnInImage:
-    incq %rax
+    incq (%rax)
     ret
 
 getInt:
@@ -58,14 +59,14 @@ ret
 
 putText:
     leaq outBufferPtr, %rax
-    movq $outBuffer, %rdx
+    leaq outBuffer, %rdx
     movq $0, %rbx
 Loop:
     movq (%rdi, %rbx), %rcx
     movq %rcx, (%rdx, %rax)
     cmpq $0, %rcx
     je return
-    incq %rax
+    incq (%rax)
     cmpq $65, %rax
     je overflow
     jmp Loop

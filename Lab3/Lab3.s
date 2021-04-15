@@ -89,21 +89,23 @@ putInt:
 ret
 
 putText:
-    leaq outBufferPtr, %rax
+    movq outBufferPtr, %rax
     leaq outBuffer, %rdx
     movq $0, %rbx
 Loop:
-    movq (%rdi, %rbx), %rcx
+    movzbq (%rdi, %rbx), %rcx
     movq %rcx, (%rdx, %rax)
     cmpq $0, %rcx
     je return
-    incq (%rax)
+    incq %rax
     cmpq $65, %rax
+    incq %rbx
     je overflow
     jmp Loop
 overflow:
     call outImage
 return:
+    movq %rax, outBufferPtr
     ret
 
 putChar:
@@ -119,11 +121,11 @@ setOutPos:
     jle Outposle
     cmpq $63, %rdi
     jge Outposge
-    movq %rdi, $outBufferPtr
+    movq %rdi, outBufferPtr
     ret
 Outposle:
-    movq $0, $outBufferPtr
+    movq $0, outBufferPtr
     ret
 Outposge:
-    movq $63, $outBufferPtr
+    movq $63, outBufferPtr
     ret

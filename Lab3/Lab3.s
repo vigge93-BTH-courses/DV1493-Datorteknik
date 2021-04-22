@@ -29,10 +29,10 @@ inImage:
 
 getInt:
     leaq inBuffer, %rax
-    movq $inBufferPtr, %r10
+    movq inBufferPtr, %r10
     leaq (%rax, %r10, 4), %rdi
     movq $0, %rax
-    movq $11, %r11
+    movq $0, %r11
 lBlankCheck:
     cmpb $' ', (%rdi)
     jne lSignPlus
@@ -69,18 +69,38 @@ lEnd:
 getText:
 ret
 
+getCharje:
+    call inImage
 getChar:
-ret
+    movq inBufferPtr, %rbx
+    leaq inBuffer, %rdx
+    cmpq $0, %rbx
+    je getCharje
+    movq (%rdx, %rbx), %rax
+    decq %rbx
+    ret
 
 getInPos:
-ret
+    movq inBufferPtr, %rax
+    ret
 
 setInPos:
-ret
+    cmpq  $0, %rdi
+    jle Inposle
+    cmpq $63, %rdi
+    jge Inposge
+    movq %rdi, inBufferPtr
+    ret
+Inposle:
+    movq $0, inBufferPtr
+    ret
+Inposge:
+    movq $63, inBufferPtr
+    ret
 
 outImage:
     movq $0, %rsi
-    movq outBuffer, %rdi
+    movq $outBuffer, %rdi
     call printf
     movq $0, outBufferPtr
     ret
@@ -109,14 +129,24 @@ return:
     ret
 
 putChar:
-ret
+    movq outBufferPtr, %rax
+    cmpq $64, outBufferPtr
+    jge overflowChar
+    leaq outBuffer, %rdx
+    movq %rdi, (%rdx, %rax)
+    incq %rax
+    movq %rax, outBufferPtr
+    jmp returnPutChar
+overflowChar:
+    call outImage
+returnPutChar:
+    ret
 
 getOutPos:
-    movq $outBufferPtr, %rax
+    movq outBufferPtr, %rax
     ret
 
 setOutPos:
-
     cmpq  $0, %rdi
     jle Outposle
     cmpq $63, %rdi

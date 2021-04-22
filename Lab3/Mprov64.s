@@ -12,7 +12,7 @@ main:
 	pushq	$0
 	movq	$headMsg,%rdi
 	call	putText
-	call	outImage
+	# call	outImage
 	call	inImage
 	movq	$5,count
 l1:
@@ -26,7 +26,7 @@ l1:
 	call	setOutPos
 l2:
 	movq	temp,%rdx
-	add	%rdx,sum
+	add		%rdx,sum
 	movq	%rdx,%rdi
 	call	putInt
 	movq	$'+',%rdi

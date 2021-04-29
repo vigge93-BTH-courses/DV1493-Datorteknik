@@ -28,11 +28,13 @@ inImage:
     ret
 
 getInt:
+    push %r12
+    push %r13
     leaq inBuffer, %rax
-    movq inBufferPtr, %r10
-    leaq (%rax, %r10, 4), %rdi
+    movq inBufferPtr, %r12
+    leaq (%rax, %r12, 4), %rdi
     movq $0, %rax
-    movq $0, %r11
+    movq $0, %r13
 lBlankCheck:
     cmpb $' ', (%rdi)
     jne lSignPlus
@@ -46,38 +48,58 @@ lSignPlus:
 lSignMinus:
     cmpb $'-', (%rdi)
     jne lNumber
-    movq $1, %r11
+    movq $1, %r13
     incq %rdi
 lNumber:
     cmpb $'0', (%rdi)
     jl  lNAN
     cmpb $'9', (%rdi)
     jg lNAN
-    movzbq (%rdi), %r10
-    subq $'0', %r10
+    movzbq (%rdi), %r12
+    subq $'0', %r12
     imulq $10, %rax
-    addq %r10, %rax
+    addq %r12, %rax
     incq %rdi
     jmp lNumber
 lNAN:
-    cmpq $1, %r11
+    cmpq $1, %r13
     jne lEnd
     negq %rax
 lEnd:
+    pop %r12
+    pop %r13
     ret
 
-getText:
-ret
+getText: # RSI: Antal tecken, RDI: Buffert
+    push %rbx
+    movq $0, %rbx
+getTextLoop:
+    cmpq $0, %rsi
+    je returnGetText
+    call getChar
+    movq %rax, (%rdi)
+    incq %rbx
+    cmpq $0, %rax
+    je returnGetText
+    decq %rsi
+    incq %rdi
+    jmp getTextLoop
+returnGetText:
+    movq %rbx, %rax
+    pop %rbx
+    ret
 
 getCharje:
     call inImage
 getChar:
+    push %rbx
     movq inBufferPtr, %rbx
     leaq inBuffer, %rdx
     cmpq $0, %rbx
     je getCharje
     movq (%rdx, %rbx), %rax
-    decq %rbx
+    decq (%rbx)
+    pop %rbx
     ret
 
 getInPos:
@@ -106,9 +128,38 @@ outImage:
     ret
 
 putInt:
-ret
+    pushq %rbx
+    pushq $0
+    movq $10, %rcx
+putIntLoop:
+    movq %rdi, %rax
+    cqto
+    divq %rcx # rax: rax//10, rdx: rax % 10
+    addq $'0', %rdx
+    movq %rdx, %rbx
+    pushq %rbx
+    cmpq $0, %rax
+    je stackToBuffPutInt
+    jmp putIntLoop
+stackToBuffPutInt:
+    cmpq $0, %rdi
+    jl putIntNeg
+    jmp IntToBuff
+putIntNeg:
+    movq $'-', %rdi
+    call putChar
+IntToBuff:
+    popq %rdi
+    cmpq $0, %rdi
+    je retPutInt
+    call putChar
+    jmp IntToBuff
+retPutInt:
+    popq %rbx
+    ret
 
 putText:
+    pushq %rbx
     movq outBufferPtr, %rax
     leaq outBuffer, %rdx
     movq $0, %rbx
@@ -126,6 +177,7 @@ overflow:
     call outImage
 return:
     movq %rax, outBufferPtr
+    popq %rbx
     ret
 
 putChar:

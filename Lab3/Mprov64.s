@@ -42,7 +42,7 @@ l2:
 	call	putChar
 	movq	sum, %rdi
 	call	putInt
-	call	outImage
+	# call	outImage
 	movq	$12,%rsi
 	movq	$buf,%rdi
 	call	getText
@@ -50,9 +50,9 @@ l2:
 	call	putText
 	movq	$125,%rdi
 	call	putInt
-	call	outImage
+	# call	outImage
 	movq	$endMsg,%rdi
 	call	putText
-	call	outImage
+	# call	outImage
 	popq	%rax
 	ret

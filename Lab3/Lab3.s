@@ -3,19 +3,20 @@ inBuffer: .space 64
 outBuffer: .space 64
 inBufferPtr: .quad 0
 outBufferPtr: .quad 0
+printString: .asciz "%s\n"
 
     .text
-    .global inImage /* Done */
-	.global getInt /* Done */
+    .global inImage
+	.global getInt
 	.global getText
 	.global getChar
 	.global getInPos
 	.global setInPos
 	.global outImage
 	.global putInt
-	.global putText /* Done */
+	.global putText
 	.global putChar
-	.global getOutPos /* Done */
+	.global getOutPos
 	.global setOutPos
 
 inImage:
@@ -121,11 +122,23 @@ Inposge:
     ret
 
 outImage:
-    movq $0, %rsi
-    movq $outBuffer, %rdi
+    movq $outBuffer, %rsi
+    movq $printString, %rdi 
+    xor %rax, %rax
     call printf
     movq $0, outBufferPtr
     ret
+
+# outImage:
+#    movq $'\n', %rdi
+#    call putChar 
+#    xor %rax, %rax 
+#    leaq outBuffer, %rdi # Move buffert containing string to rdi. 
+#    movq outBufferPtr, %rsi # Set number of characters to print. ( = next pos) 
+#    call printf 
+#    leaq outBuffer, %rdi # Move buffert containing string to rdi. 
+#    xor %rax, %rax # Temp position pointer for outBuf.
+#    ret
 
 putInt:
     pushq %rbx

@@ -28,48 +28,82 @@ inImage:
     movq $0, (%rax)
     ret
 
+increaseInBufferPtr:
+    pushq %r12
+    leaq inBuffer, %rax
+    movq inBufferPtr, %r12
+    incq %r12
+    movq (%rax, %r12), %rdi
+    cmpq $0, %rdi
+    je inBufferEnd
+    movq %r12, inBufferPtr
+returnIncreaseInBufferPtr:
+    popq %r12
+    ret
+inBufferEnd:
+    call inImage
+    jmp returnIncreaseInBufferPtr
+
 getInt:
     push %r12
     push %r13
+    push %r14
     leaq inBuffer, %rax
     movq inBufferPtr, %r12
-    leaq (%rax, %r12, 4), %rdi
+    leaq (%rax, %r12), %rdi
     movq $0, %rax
     movq $0, %r13
 lBlankCheck:
     cmpb $' ', (%rdi)
     jne lSignPlus
     incq %rdi
+    incq %r12
     jmp lBlankCheck
 lSignPlus:
     cmpb $'+', (%rdi)
     jne lSignMinus
     incq %rdi
+    incq %r12
     jmp lNumber
 lSignMinus:
     cmpb $'-', (%rdi)
     jne lNumber
     movq $1, %r13
     incq %rdi
+    incq %r12
 lNumber:
     cmpb $'0', (%rdi)
     jl  lNAN
     cmpb $'9', (%rdi)
     jg lNAN
-    movzbq (%rdi), %r12
-    subq $'0', %r12
+    movzbq (%rdi), %r14
+    subq $'0', %r14
     imulq $10, %rax
-    addq %r12, %rax
+    addq %r14, %rax
     incq %rdi
+    incq %r12
     jmp lNumber
 lNAN:
+    incq %r12
+    incq %rdi
     cmpq $1, %r13
     jne lEnd
     negq %rax
 lEnd:
-    pop %r12
+    movq %r12, inBufferPtr
+    cmpq $0, (%rdi)
+    je callInImage
+retGetInt:
+    pop %r14
     pop %r13
+    pop %r12
     ret
+callInImage:
+    pushq %rax
+    call inImage
+    popq %rax
+    jmp retGetInt
+
 
 getText: # RSI: Antal tecken, RDI: Buffert
     push %rbx
@@ -96,10 +130,11 @@ getChar:
     push %rbx
     movq inBufferPtr, %rbx
     leaq inBuffer, %rdx
-    cmpq $0, %rbx
+    cmpq $0, (%rdx, %rbx) # här blir rax > Jeff Bezoz
     je getCharje
     movq (%rdx, %rbx), %rax
-    decq (%rbx)
+    incq %rbx
+    movq %rbx, inBufferPtr
     pop %rbx
     ret
 
@@ -141,26 +176,27 @@ outImage:
 #    ret
 
 putInt:
-    pushq %rbx
     pushq $0
     movq $10, %rcx
-putIntLoop:
+    cmpq $0, %rdi
+    jl putIntNeg
+putIntNegRet:
     movq %rdi, %rax
+putIntLoop:
     cqto
     divq %rcx # rax: rax//10, rdx: rax % 10
     addq $'0', %rdx
-    movq %rdx, %rbx
-    pushq %rbx
+    pushq %rdx
     cmpq $0, %rax
-    je stackToBuffPutInt
+    je IntToBuff
     jmp putIntLoop
-stackToBuffPutInt:
-    cmpq $0, %rdi
-    jl putIntNeg
-    jmp IntToBuff
 putIntNeg:
+    pushq %rdi
     movq $'-', %rdi
     call putChar
+    popq %rdi
+    negq %rdi
+    jmp putIntNegRet
 IntToBuff:
     popq %rdi
     cmpq $0, %rdi
@@ -168,7 +204,6 @@ IntToBuff:
     call putChar
     jmp IntToBuff
 retPutInt:
-    popq %rbx
     ret
 
 putText:

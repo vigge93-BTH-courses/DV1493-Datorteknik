@@ -48,11 +48,17 @@ getInt:
     push %r12
     push %r13
     push %r14
+getIntInImageReturn:
     leaq inBuffer, %rax
     movq inBufferPtr, %r12
-    leaq (%rax, %r12), %rdi
-    movq $0, %rax
-    movq $0, %r13
+    leaq (%rax, %r12), %rdi # Current buffer position
+    movq $0, %rax # Value
+    movq $0, %r13 # Sign
+    movzbq (%rdi), %r14 # Ascii
+    cmpb $0, (%rdi)
+    je callInImage
+    cmpb $'\n', (%rdi)
+    je callInImage
 lBlankCheck:
     cmpb $' ', (%rdi)
     jne lSignPlus
@@ -84,15 +90,11 @@ lNumber:
     incq %r12
     jmp lNumber
 lNAN:
-    incq %r12
-    incq %rdi
     cmpq $1, %r13
     jne lEnd
     negq %rax
 lEnd:
     movq %r12, inBufferPtr
-    cmpq $0, (%rdi)
-    je callInImage
 retGetInt:
     pop %r14
     pop %r13
@@ -102,24 +104,31 @@ callInImage:
     pushq %rax
     call inImage
     popq %rax
-    jmp retGetInt
-
+    jmp getIntInImageReturn
 
 getText: # RSI: Antal tecken, RDI: Buffert
     push %rbx
     movq $0, %rbx
+    movq inBufferPtr, %rcx
+    leaq inBuffer, %rax
+    movq (%rax, %rcx), %rdx
+    cmpq $0, %rdx
+    jne getTextLoop
+    call inImage
 getTextLoop:
     cmpq $0, %rsi
     je returnGetText
-    call getChar
-    movq %rax, (%rdi)
+    movq (%rax, %rcx), %rdx
+    incq %rcx
+    movq %rdx, (%rdi)
     incq %rbx
-    cmpq $0, %rax
+    cmpb $0, (%rdi)
     je returnGetText
     decq %rsi
     incq %rdi
     jmp getTextLoop
 returnGetText:
+    movq %rcx, inBufferPtr
     movq %rbx, %rax
     pop %rbx
     ret
@@ -130,7 +139,7 @@ getChar:
     push %rbx
     movq inBufferPtr, %rbx
     leaq inBuffer, %rdx
-    cmpq $0, (%rdx, %rbx) # här blir rax > Jeff Bezoz
+    cmpb $0, (%rdx, %rbx)
     je getCharje
     movq (%rdx, %rbx), %rax
     incq %rbx
@@ -163,17 +172,6 @@ outImage:
     call printf
     movq $0, outBufferPtr
     ret
-
-# outImage:
-#    movq $'\n', %rdi
-#    call putChar 
-#    xor %rax, %rax 
-#    leaq outBuffer, %rdi # Move buffert containing string to rdi. 
-#    movq outBufferPtr, %rsi # Set number of characters to print. ( = next pos) 
-#    call printf 
-#    leaq outBuffer, %rdi # Move buffert containing string to rdi. 
-#    xor %rax, %rax # Temp position pointer for outBuf.
-#    ret
 
 putInt:
     pushq $0
@@ -217,8 +215,8 @@ Loop:
     cmpq $0, %rcx
     je return
     incq %rax
-    cmpq $65, %rax
     incq %rbx
+    cmpq $65, %rax
     je overflow
     jmp Loop
 overflow:

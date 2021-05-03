@@ -1,6 +1,6 @@
 	.data
 headMsg:	.asciz	"Start av testprogram. Skriv in 5 tal!"
-endMsg:	.asciz	"Slut pa testprogram"
+endMsg:	.asciz	"Slut på testprogram"
 buf:	.space	64
 sum:	.quad	0
 count:	.quad	0
